@@ -3,6 +3,8 @@ package br.com.caelum.leilao.servico;
 import java.util.Calendar;
 import java.util.List;
 
+import com.sun.xml.internal.bind.v2.TODO;
+
 import br.com.caelum.leilao.dominio.Leilao;
 import br.com.caelum.leilao.infra.dao.RepositorioDeLeiloes;
 
@@ -21,12 +23,16 @@ public class EncerradorDeLeilao {
         List<Leilao> todosLeiloesCorrentes = dao.correntes();
 
         for (Leilao leilao : todosLeiloesCorrentes) {
-            if (comecouSemanaPassada(leilao)) {
-                leilao.encerra();
-                total++;
-                dao.atualiza(leilao);
-                carteiro.envia(leilao);
-            }
+        	try {
+	            if (comecouSemanaPassada(leilao)) {
+	                leilao.encerra();
+	                total++;
+	                dao.atualiza(leilao);
+	                carteiro.envia(leilao);
+	            }
+	        }catch(Exception e ) {
+	        	System.out.println("falhou a encerrar mais continua ");
+	        }
         }
     }
 

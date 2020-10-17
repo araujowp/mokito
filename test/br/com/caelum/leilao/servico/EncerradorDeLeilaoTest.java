@@ -8,6 +8,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.never;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -145,6 +148,54 @@ public class EncerradorDeLeilaoTest {
         InOrder inOrder = inOrder(daoFalso, carteiroFalso);
         inOrder.verify(daoFalso, times(1)).atualiza(leilao1);    
         inOrder.verify(carteiroFalso, times(1)).envia(leilao1);    
+    }
+
+    @Test 
+    public void deveContinuarAtualizacaoPosFalha() {
+        Calendar antiga = Calendar.getInstance();
+        antiga.set(1999, 1, 20);
+
+        Leilao leilao1 = new CriadorDeLeilao().para("TV de plasma")
+            .naData(antiga).constroi();
+        
+        Leilao leilao2 = new CriadorDeLeilao().para("TV de plasma")
+        		.naData(antiga).constroi();
+
+        RepositorioDeLeiloes daoFalso = mock(RepositorioDeLeiloes.class);
+        when(daoFalso.correntes()).thenReturn(Arrays.asList(leilao1,leilao2));
+
+        doThrow(new RuntimeException()).when(daoFalso).atualiza(leilao1);
+        
+        EnviadorDeEmail carteiroFalso = mock(EnviadorDeEmail.class);
+        
+        EncerradorDeLeilao encerrador = new EncerradorDeLeilao(daoFalso,carteiroFalso);
+        encerrador.encerra();
+
+        verify(daoFalso,atLeastOnce()).atualiza(leilao1); //verifica se foi invocado ao menos 1 vez
+    } 
+    
+    @Test
+    public void deveDesistirSeDaoFalhaPraSempre() {
+        Calendar antiga = Calendar.getInstance();
+        antiga.set(1999, 1, 20);
+
+        Leilao leilao1 = new CriadorDeLeilao().para("TV de plasma")
+            .naData(antiga).constroi();
+        Leilao leilao2 = new CriadorDeLeilao().para("Geladeira")
+            .naData(antiga).constroi();
+
+        RepositorioDeLeiloes daoFalso = mock(RepositorioDeLeiloes.class);
+        when(daoFalso.correntes()).thenReturn(Arrays.asList(leilao1, leilao2));
+
+        EnviadorDeEmail carteiroFalso = mock(EnviadorDeEmail.class);
+        doThrow(new RuntimeException()).when(daoFalso).atualiza(any(Leilao.class));
+
+        EncerradorDeLeilao encerrador = 
+            new EncerradorDeLeilao(daoFalso, carteiroFalso);
+
+        encerrador.encerra();
+
+        verify(carteiroFalso, never()).envia(any(Leilao.class));
     }
     
 }
